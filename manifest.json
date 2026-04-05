@@ -1,0 +1,22 @@
+{
+  "name": "Profit Pilot",
+  "short_name": "Profit Pilot",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#071824",
+  "icons": [
+    {
+      "src": "./assets/logos/Fair-Logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "./assets/logos/Fair-Logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+   "permissions": ["push"],
+  "gcm_sender_id": "NEXTRADE"
+}
