@@ -7,12 +7,12 @@
   "theme_color": "#071824",
   "icons": [
     {
-      "src": "./assets/logos/Fair-Logo.png",
+      "src": "./profit-pilot-logo.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "./assets/logos/Fair-Logo.png",
+      "src": "./profit-pilot-logo.png",
       "type": "image/png",
       "sizes": "512x512"
     }
