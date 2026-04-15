@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trading Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: #0b1b2b;
+      color: white;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px;
+      background: #0f2a3d;
+      border-bottom: 1px solid #1e3a52;
+    }
+
+    .balance {
+      display: flex;
+      gap: 30px;
+      font-size: 14px;
+    }
+
+    .container {
+      display: flex;
+    }
+
+    .sidebar {
+      width: 250px;
+      background: #0f2a3d;
+      padding: 15px;
+      border-right: 1px solid #1e3a52;
+    }
+
+    .watch-item {
+      padding: 10px;
+      border-bottom: 1px solid #1e3a52;
+    }
+
+    .main {
+      flex: 1;
+      padding: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #1e3a52;
+      text-align: left;
+    }
+
+    .profit {
+      color: #00ff88;
+    }
+
+    .loss {
+      color: #ff4d4d;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      background: #ff4d4d;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 🔥 TOP BAR -->
+  <div class="topbar">
+    <h2>Profit Pilot</h2>
+    <div class="balance">
+      <div>Balance: ₹653875081</div>
+      <div>Margin: ₹653846993</div>
+      <div>P&L: ₹-16681</div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- 🔥 SIDEBAR -->
+    <div class="sidebar">
+      <h3>Watchlist</h3>
+
+      <div class="watch-item">BANKNIFTY - 55715</div>
+      <div class="watch-item">NIFTY - 23846</div>
+      <div class="watch-item">CRUDEOIL - 9340</div>
+      <div class="watch-item">GOLD - 4743</div>
+    </div>
+
+    <!-- 🔥 MAIN CONTENT -->
+    <div class="main">
+
+      <h3>Positions</h3>
+
+      <button class="btn">Batch Close</button>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Instrument</th>
+            <th>Qty</th>
+            <th>Avg</th>
+            <th>Rate</th>
+            <th>P&L</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td>11:12 PM</td>
+            <td>BUY</td>
+            <td>XAUUSD</td>
+            <td>100</td>
+            <td>4743</td>
+            <td>4734</td>
+            <td class="loss">-936</td>
+          </tr>
+
+          <tr>
+            <td>11:11 PM</td>
+            <td>BUY</td>
+            <td>XAGUSD</td>
+            <td>5000</td>
+            <td>75</td>
+            <td>75.3</td>
+            <td class="loss">-145</td>
+          </tr>
+
+          <tr>
+            <td>10:26 PM</td>
+            <td>BUY</td>
+            <td>CRUDEOIL</td>
+            <td>200</td>
+            <td>9340</td>
+            <td>9262</td>
+            <td class="loss">-15600</td>
+          </tr>
+
+          <tr>
+            <td>3:20 PM</td>
+            <td>BUY</td>
+            <td>COCHINSHIP</td>
+            <td>400</td>
+            <td>1437</td>
+            <td>-</td>
+            <td class="profit">0</td>
+          </tr>
+        </tbody>
+      </table>
+
+    </div>
+  </div>
+
+  <script>
+    // 🔐 LOGIN CHECK
+    if (localStorage.getItem("isLoggedIn") !== "true") {
+      window.location.href = "/login";
+    }
+  </script>
+
+</body>
+</html>
