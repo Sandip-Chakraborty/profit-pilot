@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <script>
+    // URL routing handle karne ke liye original script
     (function(l) {
       if (l.search[1] === '/' ) {
         var decoded = l.search.slice(1).split('&').map(function(s) {
@@ -14,15 +15,47 @@
       }
     }(window.location))
   </script>
+  
   <link href="./profit-pilot-logo.png" rel="icon" type="image/png"/>
   <link href="./manifest.json" rel="manifest"/>
   <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-  <title>Profit Pilot</title>
+  
+  <title>Profit Pilot - Login</title>
+
   <script crossorigin="" src="./assets_index-CDh67pSs.js" type="module"></script>
+  
   <link crossorigin="" href="./assets_index-C0ZVoKJg.css" rel="stylesheet"/>
+
+  <style>
+    /* Agar React component load hone se pehle loader dikhana ho */
+    #root:empty {
+      background: #0d1117;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-family: 'Inter', sans-serif;
+    }
+    #root:empty::after {
+      content: "Loading Profit Pilot...";
+    }
+  </style>
 </head>
 <body>
   <div id="root"></div>
+
+  <script type="module">
+    // Bridge Logic: Jab user successfully login ho jaye
+    // Hum LocalStorage ko monitor karte hain redirection ke liye
+    const checkAuth = setInterval(() => {
+      // 'isAuthenticated' wo key hai jo aapki JS file set karti hai
+      if (localStorage.getItem('isAuthenticated') === 'true') {
+        clearInterval(checkAuth);
+        window.location.href = 'dashboard.html';
+      }
+    }, 1000);
+  </script>
 </body>
 </html>
