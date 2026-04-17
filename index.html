@@ -1,25 +1,3 @@
-<script>
-  // Check if user is logged in
-  document.addEventListener('DOMContentLoaded', () => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated'); // Ya jo bhi aapka auth key ho
-    if (!isAuthenticated) {
-      // Agar user login nahi hai, to login page par bhej dein
-      window.location.href = 'login.html'; 
-    }
-  });
-
-  // Logout handle karne ke liye (assets_index file ke logic ke mutabiq)
-  async function handleLogout() {
-    try {
-      // JS file ke mutabiq Base_Url ka use karke logout API call karein
-      // fetch(`${Base_Url}/api/v1/logout`...)
-      localStorage.clear();
-      window.location.href = 'login.html';
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  }
-</script>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,3 +26,5 @@
   <div id="root"></div>
 </body>
 </html>
+
+
