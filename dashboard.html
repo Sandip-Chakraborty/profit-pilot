@@ -4,80 +4,549 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Profit Pilot – Dashboard</title>
-  
-  <script>
-    // --- AUTH GUARD START ---
-    // Agar user login nahi hai, toh use index.html (login page) par bhej do
-    if (localStorage.getItem('isAuthenticated') !== 'true') {
-      window.location.href = 'index.html';
-    }
-    // --- AUTH GUARD END ---
-  </script>
-
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-  
   <style>
-    /* Aapka saara purana CSS (Jo original dashboard mein tha) */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     :root {
-      --bg: #0d1117; --surface: #161b22; --surface2: #1c2230; --border: #21293a;
-      --accent: #2563eb; --accent2: #f97316; --green: #22c55e; --red: #ef4444;
-      --text: #e2e8f0; --muted: #64748b; --buy: #3b82f6;
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1c2230;
+      --border:    #21293a;
+      --accent:    #2563eb;
+      --accent2:   #f97316;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --buy:       #3b82f6;
     }
-    body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); }
-    
-    /* Logout button style */
-    .logout-btn { 
-      background: var(--red); color: white; border: none; 
-      padding: 8px 16px; border-radius: 6px; cursor: pointer; 
-      font-weight: 600; font-family: 'Inter', sans-serif;
-      transition: 0.3s;
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
-    .logout-btn:hover { opacity: 0.8; }
-    
-    /* Header layout for Logout button */
-    .top-bar {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 1rem 2rem; background: var(--surface); border-bottom: 1px solid var(--border);
+
+    /* ── TOP NAV ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 54px;
+      gap: 24px;
+      position: sticky; top: 0; z-index: 100;
     }
+    .topbar .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 1.1rem; color: var(--text);
+      text-decoration: none; white-space: nowrap;
+    }
+    .logo-icon {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: linear-gradient(135deg, #1d4ed8, #0ea5e9);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .important-badge {
+      background: #f97316; color: #fff;
+      font-size: 0.65rem; font-weight: 700;
+      padding: 3px 9px; border-radius: 4px; letter-spacing: .06em;
+    }
+    .balance-bar {
+      display: flex; gap: 28px; flex: 1; justify-content: center;
+    }
+    .bal-item { display: flex; flex-direction: column; align-items: flex-start; }
+    .bal-label { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .bal-value { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .topnav { display: flex; gap: 6px; margin-left: auto; }
+    .topnav a {
+      color: var(--muted); text-decoration: none;
+      font-size: 0.78rem; padding: 5px 12px; border-radius: 6px;
+      transition: background .15s, color .15s;
+    }
+    .topnav a:hover { background: var(--surface2); color: var(--text); }
+    .topnav a.active { background: var(--accent); color: #fff; }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #dc2626; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700; margin-left: 8px;
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      display: flex; flex: 1; overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 270px; min-width: 220px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .seg-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+    }
+    .seg-tabs button {
+      flex: 1; background: none; border: none;
+      color: var(--muted); font-family: 'Syne', sans-serif;
+      font-size: 0.72rem; font-weight: 600;
+      padding: 10px 4px; cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .seg-tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+    .search-row {
+      display: flex; gap: 8px; padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .search-row input {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 10px;
+      color: var(--text); font-size: 0.75rem; outline: none;
+    }
+    .icon-btn {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--muted);
+      width: 30px; height: 30px; display: flex; align-items: center;
+      justify-content: center; cursor: pointer; font-size: 0.9rem;
+    }
+    .add-btn {
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 6px; padding: 5px 12px;
+      font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .watchlist { flex: 1; overflow-y: auto; }
+    .watch-item {
+      padding: 10px 14px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .12s;
+      position: relative;
+    }
+    .watch-item:hover { background: var(--surface2); }
+    .watch-header { display: flex; justify-content: space-between; align-items: center; }
+    .watch-name { font-weight: 700; font-size: 0.85rem; }
+    .watch-ltp { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+    .watch-prices { display: flex; justify-content: space-between; margin-top: 2px; }
+    .watch-bid { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 600; }
+    .watch-ask { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; font-weight: 600; }
+    .watch-change { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+    .watch-date { font-size: 0.65rem; color: var(--muted); }
+    .neg { color: var(--red); }
+    .pos { color: var(--green); }
+    .cart-badge { font-size: 0.6rem; color: var(--muted); }
+
+    /* ── MAIN ── */
+    .main { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+    /* Section header */
+    .section-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title { font-size: 1rem; font-weight: 700; }
+    .count-badge {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; font-size: 0.72rem; padding: 2px 8px; color: var(--muted);
+    }
+    .batch-close-btn {
+      background: #dc2626; color: #fff; border: none;
+      border-radius: 6px; padding: 7px 14px;
+      font-size: 0.75rem; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .search-box {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 12px;
+      color: var(--text); font-size: 0.75rem; outline: none; width: 180px;
+    }
+
+    /* Table */
+    .table-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--surface2);
+      font-size: 0.7rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em;
+      padding: 10px 14px; text-align: left; font-weight: 600;
+    }
+    thead th:last-child, tbody td:last-child { text-align: right; }
+    tbody tr { border-top: 1px solid var(--border); transition: background .12s; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 11px 14px; font-size: 0.8rem; }
+    .td-time { font-family: 'JetBrains Mono', monospace; color: var(--muted); font-size: 0.72rem; }
+    .td-buy { color: var(--buy); font-weight: 700; font-size: 0.78rem; }
+    .td-instrument { font-weight: 600; }
+    .td-sub { font-size: 0.65rem; color: var(--muted); }
+    .td-mono { font-family: 'JetBrains Mono', monospace; }
+    .td-bid { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+    .td-pl-neg { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--red); }
+    .td-pl-zero { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--green); }
+    .total-row td {
+      font-weight: 700; font-size: 0.82rem;
+      padding: 10px 14px; border-top: 1px solid var(--border);
+      background: var(--surface2);
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 10px; padding: 8px 14px;
+      font-size: 0.72rem; color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    .pg-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 4px; color: var(--muted);
+      width: 24px; height: 24px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+    }
+    .pg-btn:hover { background: var(--surface2); }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
   </style>
 </head>
 <body>
 
-<div class="top-bar">
-    <h2 style="font-weight: 800; letter-spacing: -1px;">PROFIT PILOT</h2>
-    <button class="logout-btn" onclick="logout()">Logout</button>
+<!-- ══ TOP BAR ══ -->
+<header class="topbar">
+  <a class="logo" href="#">
+    <div class="logo-icon">🛩️</div>
+    Profit Pilot
+  </a>
+  <span class="important-badge">IMPORTANT</span>
+
+  <div class="balance-bar">
+    <div class="bal-item">
+      <span class="bal-label">Ledger Balance</span>
+      <span class="bal-value">₹653875081</span>
+    </div>
+    <div class="bal-item">
+      <span class="bal-label">Margin Available</span>
+      <span class="bal-value">₹653846993</span>
+    </div>
+    <div class="bal-item">
+      <span class="bal-label">Margin Used</span>
+      <span class="bal-value">₹11407</span>
+    </div>
+    <div class="bal-item">
+      <span class="bal-label">M2M</span>
+      <span class="bal-value">₹653858400</span>
+    </div>
+  </div>
+
+  <nav class="topnav">
+    <a href="#">Orders</a>
+    <a href="#" class="active">Position</a>
+    <a href="#">Chart</a>
+    <a href="#">Profile</a>
+  </nav>
+  <div class="avatar">S</div>
+</header>
+
+<!-- ══ LAYOUT ══ -->
+<div class="layout">
+
+  <!-- ── SIDEBAR / WATCHLIST ── -->
+  <aside class="sidebar">
+    <div class="seg-tabs">
+      <button>WATCHLIST</button>
+      <button class="active">NSEFUT</button>
+      <button>NSEOPT</button>
+      <button>MCXFUT</button>
+      <button>MCXOPT</button>
+    </div>
+
+    <div class="search-row">
+      <input type="text" placeholder="🔍  Search symbols…"/>
+      <button class="icon-btn">⚙</button>
+      <button class="icon-btn">🗑</button>
+      <button class="add-btn">+ Add</button>
+    </div>
+
+    <div class="watchlist">
+      <!-- BANKNIFTY -->
+      <div class="watch-item">
+        <div class="watch-header">
+          <div>
+            <span class="cart-badge">🛒 0  </span>
+            <span class="watch-ltp">LTP : 55748.00</span>
+          </div>
+        </div>
+        <div class="watch-prices">
+          <span class="watch-name">BANKNIFTY</span>
+          <span></span>
+        </div>
+        <div class="watch-prices">
+          <span class="watch-bid td-mono">55715.00</span>
+          <span class="watch-ask td-mono">55740.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:2px;">
+          <span class="watch-date">28 APR</span>
+          <span class="watch-change neg">-324.70 (-0.59%)</span>
+        </div>
+      </div>
+
+      <!-- NIFTY -->
+      <div class="watch-item">
+        <div class="watch-header">
+          <div>
+            <span class="cart-badge">🛒 0  </span>
+            <span class="watch-ltp">LTP : 23850.00</span>
+          </div>
+        </div>
+        <div class="watch-prices">
+          <span class="watch-name">NIFTY</span>
+          <span></span>
+        </div>
+        <div class="watch-prices">
+          <span class="watch-bid td-mono">23846.70</span>
+          <span class="watch-ask td-mono">23850.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:2px;">
+          <span class="watch-date">28 APR</span>
+          <span class="watch-change neg">-247.30 (-1.04%)</span>
+        </div>
+      </div>
+
+      <!-- Extra items for realism -->
+      <div class="watch-item">
+        <div class="watch-header"><span class="watch-ltp">LTP : 21340.00</span></div>
+        <div class="watch-prices"><span class="watch-name">FINNIFTY</span></div>
+        <div class="watch-prices">
+          <span class="watch-bid td-mono">21330.00</span>
+          <span class="watch-ask td-mono">21340.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:2px;">
+          <span class="watch-date">28 APR</span>
+          <span class="watch-change pos">+120.50 (+0.57%)</span>
+        </div>
+      </div>
+
+      <div class="watch-item">
+        <div class="watch-header"><span class="watch-ltp">LTP : 4738.00</span></div>
+        <div class="watch-prices"><span class="watch-name">XAUUSD</span></div>
+        <div class="watch-prices">
+          <span class="watch-bid td-mono">4734.58</span>
+          <span class="watch-ask td-mono">4738.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:2px;">
+          <span class="watch-date">COMEX</span>
+          <span class="watch-change neg">-9.36 (-0.20%)</span>
+        </div>
+      </div>
+
+      <div class="watch-item">
+        <div class="watch-header"><span class="watch-ltp">LTP : 75.38</span></div>
+        <div class="watch-prices"><span class="watch-name">XAGUSD</span></div>
+        <div class="watch-prices">
+          <span class="watch-bid td-mono">75.38</span>
+          <span class="watch-ask td-mono">75.41</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:2px;">
+          <span class="watch-date">COMEX</span>
+          <span class="watch-change neg">-0.03 (-0.04%)</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="main">
+
+    <!-- ── POSITION TABLE ── -->
+    <div class="section-hdr">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="section-title">Position</span>
+        <span class="count-badge">(4)</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="batch-close-btn">⊗ Batch Close</button>
+        <input class="search-box" type="text" placeholder="🔍 Search"/>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Instrument</th>
+            <th>Qty</th>
+            <th>Avg</th>
+            <th>Rate</th>
+            <th>P&amp;L</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-time">11:12:51 PM</td>
+            <td class="td-buy">BUY</td>
+            <td><span class="td-instrument">XAUUSD</span> <span class="td-sub">Comex</span></td>
+            <td class="td-mono">100</td>
+            <td class="td-mono">4743.94</td>
+            <td><span class="td-mono">4734.58</span> <span class="td-bid">BID</span></td>
+            <td class="td-pl-neg">-936.00</td>
+          </tr>
+          <tr>
+            <td class="td-time">11:11:53 PM</td>
+            <td class="td-buy">BUY</td>
+            <td><span class="td-instrument">XAGUSD</span> <span class="td-sub">Comex</span></td>
+            <td class="td-mono">5000</td>
+            <td class="td-mono">75.41</td>
+            <td><span class="td-mono">75.38</span> <span class="td-bid">BID</span></td>
+            <td class="td-pl-neg">-145.00</td>
+          </tr>
+          <tr>
+            <td class="td-time">10:26:01 PM</td>
+            <td class="td-buy">BUY</td>
+            <td><span class="td-instrument">CRUDEOIL</span> <span class="td-sub">20 APR</span></td>
+            <td class="td-mono">200</td>
+            <td class="td-mono">9340.00</td>
+            <td><span class="td-mono">9262.00</span> <span class="td-bid">BID</span></td>
+            <td class="td-pl-neg">-15600.00</td>
+          </tr>
+          <tr>
+            <td class="td-time">3:20:40 PM</td>
+            <td class="td-buy">BUY</td>
+            <td><span class="td-instrument">COCHINSHIP</span> <span class="td-sub">28 APR</span></td>
+            <td class="td-mono">400</td>
+            <td class="td-mono">1437.90</td>
+            <td><span class="td-mono">N/A</span> <span class="td-bid">LTP</span></td>
+            <td class="td-pl-zero">0.00</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="6" style="text-align:right;color:var(--muted);font-size:0.75rem;">Total</td>
+            <td class="td-pl-neg" style="font-size:0.9rem;">-16681.00</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="pagination">
+        <button class="pg-btn">‹</button>
+        <span>Page 1 of 1</span>
+        <button class="pg-btn">›</button>
+      </div>
+    </div>
+
+    <!-- ── ACTIVE / OPEN TABLE ── -->
+    <div class="section-hdr">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="section-title">Active / Open</span>
+        <span class="count-badge">(4)</span>
+      </div>
+      <input class="search-box" type="text" placeholder="🔍 Search"/>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Instrument</th>
+            <th>Qty</th>
+            <th>Entry</th>
+            <th>Rate</th>
+            <th>P&amp;L</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-time">11:12:51 PM</td>
+            <td class="td-buy">BUY</td>
+            <td><span class="td-instrument">XAUUSD</span> <span class="td-sub">Comex</span></td>
+            <td class="td-mono">100</td>
+            <td class="td-mono">4743.94</td>
+            <td><span class="td-mono">4734.58</span> <span class="td-bid">BID</span></td>
+            <td class="td-pl-neg">-936.00</td>
+          </tr>
+          <tr>
+            <td class="td-time">11:11:53 PM</td>
+            <td class="td-buy">BUY</td>
+            <td><span class="td-instrument">XAGUSD</span> <span class="td-sub">Comex</span></td>
+            <td class="td-mono">5000</td>
+            <td class="td-mono">75.41</td>
+            <td><span class="td-mono">75.38</span> <span class="td-bid">BID</span></td>
+            <td class="td-pl-neg">-145.00</td>
+          </tr>
+          <tr>
+            <td class="td-time">10:26:01 PM</td>
+            <td class="td-buy">BUY</td>
+            <td><span class="td-instrument">CRUDEOIL</span> <span class="td-sub">20 APR</span></td>
+            <td class="td-mono">200</td>
+            <td class="td-mono">9340.00</td>
+            <td><span class="td-mono">9262.00</span> <span class="td-bid">BID</span></td>
+            <td class="td-pl-neg">-15600.00</td>
+          </tr>
+          <tr>
+            <td class="td-time">3:20:40 PM</td>
+            <td class="td-buy">BUY</td>
+            <td><span class="td-instrument">COCHINSHIP</span> <span class="td-sub">28 APR</span></td>
+            <td class="td-mono">400</td>
+            <td class="td-mono">1437.90</td>
+            <td><span class="td-mono">N/A</span> <span class="td-bid">LTP</span></td>
+            <td class="td-pl-zero">0.00</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination">
+        <button class="pg-btn">‹</button>
+        <span>Page 1 of 1</span>
+        <button class="pg-btn">›</button>
+      </div>
+    </div>
+
+  </main>
 </div>
 
-<main style="padding: 2rem;">
-    <h1>Welcome to your Dashboard</h1>
-    <p style="color: var(--muted);">Authentication connected successfully.</p>
-    
-    </main>
-
 <script>
-  // Logout Function
-  function logout() {
-    // Session clear karo
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('user_token');
-    // Login page par wapas bhejo
-    window.location.href = 'index.html';
-  }
+  // Segment tab switching
+  document.querySelectorAll('.seg-tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.seg-tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
 
-  // Aapka purana dashboard scripts (tab switching, etc.) yahan rahega
+  // Top nav switching
+  document.querySelectorAll('.topnav a').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      document.querySelectorAll('.topnav a').forEach(x => x.classList.remove('active'));
+      a.classList.add('active');
+    });
+  });
+
+  // Simulate live P&L color flicker
+  setInterval(() => {
+    document.querySelectorAll('.td-pl-neg').forEach(el => {
+      el.style.opacity = '0.7';
+      setTimeout(() => el.style.opacity = '1', 200);
+    });
+  }, 3000);
 </script>
-
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
