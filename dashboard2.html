@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Profit Pilot – Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --surface2: #1c2230;
+      --border:   #21293a;
+      --accent:   #2563eb;
+      --green:    #22c55e;
+      --red:      #ef4444;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --buy:      #3b82f6;
+    }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ══ TOPBAR ══ */
+    .topbar {
+      display: flex; align-items: center;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 18px; height: 52px; gap: 20px;
+      position: sticky; top: 0; z-index: 200; flex-shrink: 0;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 9px;
+      font-weight: 800; font-size: 1rem; color: var(--text);
+      text-decoration: none; white-space: nowrap;
+    }
+    .logo-icon {
+      width: 32px; height: 32px; border-radius: 50%; overflow: hidden;
+      background: #1a2840; border: 1.5px solid #2a3f5f;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-icon img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+    .live-badge {
+      background: var(--green); color: #fff;
+      font-size: 0.6rem; font-weight: 700;
+      padding: 2px 7px; border-radius: 4px; letter-spacing: .06em;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    .balance-bar { display: flex; gap: 24px; flex: 1; justify-content: center; }
+    .bal-item { display: flex; flex-direction: column; }
+    .bal-label { font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .bal-value { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; font-weight: 600; }
+
+    .topnav { display: flex; gap: 4px; margin-left: auto; }
+    .topnav a {
+      color: var(--muted); text-decoration: none;
+      font-size: 0.76rem; padding: 5px 11px; border-radius: 6px;
+      transition: background .15s, color .15s; cursor: pointer;
+    }
+    .topnav a:hover { background: var(--surface2); color: var(--text); }
+    .topnav a.active { background: var(--accent); color: #fff; }
+
+    .avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #dc2626; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700; margin-left: 6px;
+    }
+
+    /* ══ LAYOUT ══ */
+    .layout { display: flex; flex: 1; overflow: hidden; }
+
+    /* ══ SIDEBAR ══ */
+    .sidebar {
+      width: 230px; min-width: 200px; flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .seg-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .seg-tabs button {
+      flex: 1; background: none; border: none;
+      color: var(--muted); font-family: 'Syne', sans-serif;
+      font-size: 0.6rem; font-weight: 600;
+      padding: 8px 2px; cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s; white-space: nowrap;
+    }
+    .seg-tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
+
+    .search-row {
+      display: flex; gap: 6px; padding: 8px 10px;
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .search-row input {
+      flex: 1; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 8px;
+      color: var(--text); font-size: 0.72rem; outline: none;
+    }
+    .add-btn {
+      background: var(--accent); color: #fff; border: none;
+      border-radius: 6px; padding: 4px 10px;
+      font-size: 0.7rem; font-weight: 600; cursor: pointer;
+    }
+
+    .watchlist { flex: 1; overflow-y: auto; }
+    .watch-item {
+      padding: 8px 11px; border-bottom: 1px solid var(--border);
+      cursor: pointer; transition: background .1s;
+    }
+    .watch-item:hover, .watch-item.selected { background: var(--surface2); }
+    .watch-item.selected { border-left: 2px solid var(--accent); }
+    .wh { display: flex; justify-content: space-between; align-items: center; }
+    .wn { font-weight: 700; font-size: 0.8rem; }
+    .wl { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--muted); }
+    .wp { display: flex; justify-content: space-between; margin-top: 2px; }
+    .wb { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 600; }
+    .wc { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; }
+    .wd { font-size: 0.6rem; color: var(--muted); }
+    .neg { color: var(--red); } .pos { color: var(--green); }
+
+    /* ══ MAIN AREA ══ */
+    .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+    .view.active { display: flex; }
+
+    /* ══ CHART VIEW ══ */
+    /* Symbol toolbar above TradingView widget */
+    .chart-toolbar {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 7px 14px; background: var(--surface);
+      border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .sym-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800; font-size: 0.95rem;
+    }
+
+    /* TradingView full-height container */
+    .tv-wrap {
+      flex: 1; display: flex; overflow: hidden;
+    }
+    #tv-chart-container {
+      flex: 1; min-height: 0;
+    }
+    #tv-chart-container iframe {
+      width: 100% !important;
+      height: 100% !important;
+      border: none;
+    }
+
+    /* Order panel */
+    .order-panel {
+      width: 210px; flex-shrink: 0;
+      background: var(--surface);
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    .op-title {
+      font-size: 0.7rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em;
+      padding: 10px 12px 7px; border-bottom: 1px solid var(--border);
+    }
+    .order-tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .order-tab {
+      flex: 1; background: none; border: none;
+      font-family: 'Syne', sans-serif; font-size: 0.76rem; font-weight: 700;
+      padding: 8px 4px; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: all .15s;
+    }
+    .order-tab.buy { color: var(--buy); }
+    .order-tab.buy.active { border-bottom-color: var(--buy); background: rgba(59,130,246,.08); }
+    .order-tab.sell { color: var(--red); }
+    .order-tab.sell.active { border-bottom-color: var(--red); background: rgba(239,68,68,.08); }
+
+    .order-form { padding: 10px; display: flex; flex-direction: column; gap: 9px; }
+    .fl { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 3px; }
+    .fi {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 9px;
+      color: var(--text); font-size: 0.78rem; outline: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .fi:focus { border-color: var(--accent); }
+    .fs {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 9px;
+      color: var(--text); font-size: 0.76rem; outline: none; cursor: pointer;
+    }
+    .sl-tp { display: flex; gap: 5px; }
+    .sl-tp > div { flex: 1; }
+
+    .buy-btn {
+      width: 100%; background: linear-gradient(135deg,#1d4ed8,#3b82f6);
+      color: #fff; border: none; border-radius: 7px;
+      padding: 9px; font-weight: 700; font-size: 0.8rem;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .buy-btn:hover { opacity: .9; }
+    .sell-btn {
+      width: 100%; background: linear-gradient(135deg,#991b1b,#ef4444);
+      color: #fff; border: none; border-radius: 7px;
+      padding: 9px; font-weight: 700; font-size: 0.8rem;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .sell-btn:hover { opacity: .9; }
+
+    .mkt-info { padding: 9px 11px; border-top: 1px solid var(--border); }
+    .mi { display: flex; justify-content: space-between; padding: 3px 0; }
+    .mi-l { font-size: 0.65rem; color: var(--muted); }
+    .mi-v { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; }
+
+    /* ══ POSITION / ORDERS VIEWS ══ */
+    .pos-view, .orders-view { padding: 18px 22px; overflow-y: auto; flex: 1; }
+    .sec-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .sec-title { font-size: 0.95rem; font-weight: 700; }
+    .cnt-badge {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; font-size: 0.7rem; padding: 2px 7px; color: var(--muted);
+    }
+    .batch-btn {
+      background: #dc2626; color: #fff; border: none;
+      border-radius: 6px; padding: 6px 12px;
+      font-size: 0.73rem; font-weight: 700; cursor: pointer;
+    }
+    .srch {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 11px;
+      color: var(--text); font-size: 0.73rem; outline: none; width: 170px;
+    }
+    .tbl-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; margin-bottom: 24px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--surface2); font-size: 0.68rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .06em;
+      padding: 9px 13px; text-align: left; font-weight: 600;
+    }
+    thead th:last-child, tbody td:last-child { text-align: right; }
+    tbody tr { border-top: 1px solid var(--border); transition: background .1s; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td { padding: 10px 13px; font-size: 0.78rem; }
+    .tt { font-family: 'JetBrains Mono', monospace; color: var(--muted); font-size: 0.7rem; }
+    .tb { color: var(--buy); font-weight: 700; font-size: 0.76rem; }
+    .ts { color: var(--red); font-weight: 700; font-size: 0.76rem; }
+    .ti { font-weight: 600; }
+    .tsub { font-size: 0.63rem; color: var(--muted); }
+    .tm { font-family: 'JetBrains Mono', monospace; }
+    .tbid { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--muted); }
+    .tn { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--red); }
+    .tp2 { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--green); }
+    .tfoot-row td {
+      font-weight: 700; font-size: 0.8rem;
+      padding: 9px 13px; border-top: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .pgn {
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 9px; padding: 7px 13px;
+      font-size: 0.7rem; color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+    .pg-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 4px; color: var(--muted);
+      width: 22px; height: 22px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+    }
+    .pg-btn:hover { background: var(--surface2); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 22px; right: 22px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 11px 16px;
+      font-size: 0.78rem; z-index: 999;
+      transform: translateY(80px); opacity: 0;
+      transition: all .3s ease;
+      display: flex; align-items: center; gap: 9px;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .t-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    ::-webkit-scrollbar { width: 3px; height: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<!-- ══ TOPBAR ══ -->
+<header class="topbar">
+  <a class="logo" href="index.html">
+    <div class="logo-icon">
+      <img src="profit-pilot-logo.png" alt="logo"
+           onerror="this.style.display='none';this.parentElement.textContent='🛩️'"/>
+    </div>
+    Profit Pilot
+  </a>
+  <span class="live-badge">● LIVE</span>
+
+  <div class="balance-bar">
+    <div class="bal-item">
+      <span class="bal-label">Ledger Balance</span>
+      <span class="bal-value">₹6,53,87,508</span>
+    </div>
+    <div class="bal-item">
+      <span class="bal-label">Margin Available</span>
+      <span class="bal-value">₹6,53,84,699</span>
+    </div>
+    <div class="bal-item">
+      <span class="bal-label">Margin Used</span>
+      <span class="bal-value">₹11,407</span>
+    </div>
+    <div class="bal-item">
+      <span class="bal-label">M2M P&amp;L</span>
+      <span class="bal-value tn">-₹16,681</span>
+    </div>
+  </div>
+
+  <nav class="topnav">
+    <a href="#" onclick="gotoView('orders',this)">Orders</a>
+    <a href="#" onclick="gotoView('position',this)">Position</a>
+    <a href="#" onclick="gotoView('chart',this)" class="active">📈 Chart</a>
+    <a href="index.html">Logout</a>
+  </nav>
+  <div class="avatar" id="user-avatar">S</div>
+</header>
+
+<!-- ══ LAYOUT ══ -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="seg-tabs">
+      <button onclick="switchSeg(this,'FX')" class="active">FOREX</button>
+      <button onclick="switchSeg(this,'NSE')">NSE</button>
+      <button onclick="switchSeg(this,'MCX')">MCX</button>
+      <button onclick="switchSeg(this,'OPT')">OPT</button>
+    </div>
+    <div class="search-row">
+      <input type="text" placeholder="🔍 Search…" oninput="filterWatch(this.value)"/>
+      <button class="add-btn">+ Add</button>
+    </div>
+    <div class="watchlist" id="watchlist-body"></div>
+  </aside>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+
+    <!-- ══ CHART VIEW ══ -->
+    <div class="view active" id="view-chart">
+
+      <!-- Thin symbol info bar -->
+      <div class="chart-toolbar">
+        <span class="sym-badge" id="tv-sym-label">XAUUSD</span>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.75rem;color:var(--muted)" id="tv-exch-label">COMEX • Gold Spot</span>
+        <span style="margin-left:auto;font-size:0.72rem;color:var(--muted)">Powered by TradingView</span>
+      </div>
+
+      <!-- TradingView + Order Panel -->
+      <div class="tv-wrap">
+
+        <!-- ★ TradingView Advanced Real-Time Chart Widget ★ -->
+        <div id="tv-chart-container">
+          <!-- Widget injected by JS -->
+        </div>
+
+        <!-- Order Panel -->
+        <div class="order-panel">
+          <div class="op-title">Place Order</div>
+          <div class="order-tabs">
+            <button class="order-tab buy active" id="tab-buy" onclick="switchSide('buy')">BUY</button>
+            <button class="order-tab sell" id="tab-sell" onclick="switchSide('sell')">SELL</button>
+          </div>
+          <div class="order-form">
+            <div>
+              <div class="fl">Symbol</div>
+              <input class="fi" id="ord-sym" readonly/>
+            </div>
+            <div>
+              <div class="fl">Order Type</div>
+              <select class="fs" id="ord-type" onchange="togglePriceRow()">
+                <option>Market</option>
+                <option>Limit</option>
+                <option>Stop</option>
+                <option>Stop-Limit</option>
+              </select>
+            </div>
+            <div id="price-row" style="display:none">
+              <div class="fl">Price</div>
+              <input class="fi" id="ord-price" type="number" placeholder="0.00"/>
+            </div>
+            <div>
+              <div class="fl">Quantity / Lots</div>
+              <input class="fi" id="ord-qty" type="number" value="1" min="1"/>
+            </div>
+            <div class="sl-tp">
+              <div>
+                <div class="fl">Stop Loss</div>
+                <input class="fi" id="ord-sl" type="number" placeholder="SL"/>
+              </div>
+              <div>
+                <div class="fl">Take Profit</div>
+                <input class="fi" id="ord-tp" type="number" placeholder="TP"/>
+              </div>
+            </div>
+            <button class="buy-btn" id="exec-btn" onclick="placeOrder()">BUY MARKET</button>
+          </div>
+          <div class="mkt-info">
+            <div class="mi"><span class="mi-l">Bid</span><span class="mi-v" id="mi-bid">—</span></div>
+            <div class="mi"><span class="mi-l">Ask</span><span class="mi-v" id="mi-ask">—</span></div>
+            <div class="mi"><span class="mi-l">Spread</span><span class="mi-v" id="mi-spread">—</span></div>
+            <div class="mi"><span class="mi-l">Day High</span><span class="mi-v" id="mi-high">—</span></div>
+            <div class="mi"><span class="mi-l">Day Low</span><span class="mi-v" id="mi-low">—</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ POSITION VIEW ══ -->
+    <div class="view" id="view-position">
+      <div class="pos-view">
+        <div class="sec-hdr">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <span class="sec-title">Position</span>
+            <span class="cnt-badge">(4)</span>
+          </div>
+          <div style="display:flex;gap:9px;align-items:center;">
+            <button class="batch-btn">⊗ Batch Close</button>
+            <input class="srch" type="text" placeholder="🔍 Search"/>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>Type</th><th>Instrument</th><th>Qty</th><th>Avg</th><th>Rate</th><th>P&amp;L</th></tr></thead>
+            <tbody>
+              <tr><td class="tt">11:12:51 PM</td><td class="tb">BUY</td><td><span class="ti">XAUUSD</span> <span class="tsub">Comex</span></td><td class="tm">100</td><td class="tm">4743.94</td><td><span class="tm">4734.58</span> <span class="tbid">BID</span></td><td class="tn">-936.00</td></tr>
+              <tr><td class="tt">11:11:53 PM</td><td class="tb">BUY</td><td><span class="ti">XAGUSD</span> <span class="tsub">Comex</span></td><td class="tm">5000</td><td class="tm">75.41</td><td><span class="tm">75.38</span> <span class="tbid">BID</span></td><td class="tn">-145.00</td></tr>
+              <tr><td class="tt">10:26:01 PM</td><td class="tb">BUY</td><td><span class="ti">CRUDEOIL</span> <span class="tsub">20 APR</span></td><td class="tm">200</td><td class="tm">9340.00</td><td><span class="tm">9262.00</span> <span class="tbid">BID</span></td><td class="tn">-15600.00</td></tr>
+              <tr><td class="tt">3:20:40 PM</td><td class="tb">BUY</td><td><span class="ti">COCHINSHIP</span> <span class="tsub">28 APR</span></td><td class="tm">400</td><td class="tm">1437.90</td><td><span class="tm">N/A</span> <span class="tbid">LTP</span></td><td class="tp2">0.00</td></tr>
+            </tbody>
+            <tfoot><tr class="tfoot-row"><td colspan="6" style="text-align:right;color:var(--muted);font-size:0.72rem;">Total</td><td class="tn" style="font-size:0.88rem;">-16,681.00</td></tr></tfoot>
+          </table>
+          <div class="pgn"><button class="pg-btn">‹</button><span>Page 1 of 1</span><button class="pg-btn">›</button></div>
+        </div>
+
+        <div class="sec-hdr">
+          <div style="display:flex;align-items:center;gap:9px;">
+            <span class="sec-title">Active / Open</span>
+            <span class="cnt-badge">(4)</span>
+          </div>
+          <input class="srch" type="text" placeholder="🔍 Search"/>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>Type</th><th>Instrument</th><th>Qty</th><th>Entry</th><th>Rate</th><th>P&amp;L</th></tr></thead>
+            <tbody>
+              <tr><td class="tt">11:12:51 PM</td><td class="tb">BUY</td><td><span class="ti">XAUUSD</span> <span class="tsub">Comex</span></td><td class="tm">100</td><td class="tm">4743.94</td><td><span class="tm">4734.58</span> <span class="tbid">BID</span></td><td class="tn">-936.00</td></tr>
+              <tr><td class="tt">11:11:53 PM</td><td class="tb">BUY</td><td><span class="ti">XAGUSD</span> <span class="tsub">Comex</span></td><td class="tm">5000</td><td class="tm">75.41</td><td><span class="tm">75.38</span> <span class="tbid">BID</span></td><td class="tn">-145.00</td></tr>
+              <tr><td class="tt">10:26:01 PM</td><td class="tb">BUY</td><td><span class="ti">CRUDEOIL</span> <span class="tsub">20 APR</span></td><td class="tm">200</td><td class="tm">9340.00</td><td><span class="tm">9262.00</span> <span class="tbid">BID</span></td><td class="tn">-15600.00</td></tr>
+              <tr><td class="tt">3:20:40 PM</td><td class="tb">BUY</td><td><span class="ti">COCHINSHIP</span> <span class="tsub">28 APR</span></td><td class="tm">400</td><td class="tm">1437.90</td><td><span class="tm">N/A</span> <span class="tbid">LTP</span></td><td class="tp2">0.00</td></tr>
+            </tbody>
+          </table>
+          <div class="pgn"><button class="pg-btn">‹</button><span>Page 1 of 1</span><button class="pg-btn">›</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ORDERS VIEW ══ -->
+    <div class="view" id="view-orders">
+      <div class="orders-view">
+        <div class="sec-hdr"><span class="sec-title">Order History</span></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>Symbol</th><th>Type</th><th>Qty</th><th>Price</th><th>Status</th></tr></thead>
+            <tbody id="order-history">
+              <tr><td class="tt">—</td><td colspan="5" style="color:var(--muted);font-size:0.76rem;">No orders yet. Place from Chart view.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end main-area -->
+</div><!-- end layout -->
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="t-dot" id="t-dot"></div>
+  <span id="t-msg"></span>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  SYMBOL MAP  —  TradingView symbol strings
+// ══════════════════════════════════════════════
+const SYMBOLS = {
+  FX: [
+    { name:'XAUUSD', tv:'OANDA:XAUUSD',    label:'Gold Spot',    exchange:'COMEX', price:4734.58, dec:2 },
+    { name:'XAGUSD', tv:'OANDA:XAGUSD',    label:'Silver Spot',  exchange:'COMEX', price:75.38,   dec:2 },
+    { name:'EURUSD', tv:'OANDA:EURUSD',    label:'Euro/Dollar',  exchange:'FOREX', price:1.0842,  dec:4 },
+    { name:'GBPUSD', tv:'OANDA:GBPUSD',    label:'Pound/Dollar', exchange:'FOREX', price:1.2715,  dec:4 },
+    { name:'USDJPY', tv:'OANDA:USDJPY',    label:'Dollar/Yen',   exchange:'FOREX', price:154.32,  dec:2 },
+    { name:'USDCHF', tv:'OANDA:USDCHF',    label:'Dollar/Franc', exchange:'FOREX', price:0.9102,  dec:4 },
+    { name:'AUDUSD', tv:'OANDA:AUDUSD',    label:'Aussie/Dollar',exchange:'FOREX', price:0.6423,  dec:4 },
+    { name:'USDCAD', tv:'OANDA:USDCAD',    label:'Dollar/CAD',   exchange:'FOREX', price:1.3861,  dec:4 },
+    { name:'BTCUSD', tv:'BITSTAMP:BTCUSD', label:'Bitcoin',      exchange:'CRYPTO',price:84200,   dec:0 },
+    { name:'ETHUSD', tv:'BITSTAMP:ETHUSD', label:'Ethereum',     exchange:'CRYPTO',price:1620,    dec:2 },
+  ],
+  NSE: [
+    { name:'BANKNIFTY',tv:'NSE:BANKNIFTY', label:'Bank Nifty',  exchange:'NSE', price:55748, dec:2 },
+    { name:'NIFTY',    tv:'NSE:NIFTY50',   label:'Nifty 50',    exchange:'NSE', price:23850, dec:2 },
+    { name:'RELIANCE', tv:'NSE:RELIANCE',  label:'Reliance',    exchange:'NSE', price:1247,  dec:2 },
+    { name:'TCS',      tv:'NSE:TCS',       label:'TCS',         exchange:'NSE', price:3842,  dec:2 },
+    { name:'INFY',     tv:'NSE:INFY',      label:'Infosys',     exchange:'NSE', price:1498,  dec:2 },
+    { name:'HDFCBANK', tv:'NSE:HDFCBANK',  label:'HDFC Bank',   exchange:'NSE', price:1698,  dec:2 },
+    { name:'TATAMOTORS',tv:'NSE:TATAMOTORS',label:'Tata Motors',exchange:'NSE', price:742,   dec:2 },
+  ],
+  MCX: [
+    { name:'CRUDEOIL',   tv:'MCX:CRUDEOIL1!',   label:'Crude Oil',    exchange:'MCX', price:9262,  dec:0 },
+    { name:'NATURALGAS', tv:'MCX:NATURALGAS1!',  label:'Natural Gas',  exchange:'MCX', price:245.8, dec:2 },
+    { name:'COPPER',     tv:'MCX:COPPER1!',      label:'Copper',       exchange:'MCX', price:871.2, dec:2 },
+    { name:'ZINC',       tv:'MCX:ZINC1!',        label:'Zinc',         exchange:'MCX', price:268.5, dec:2 },
+    { name:'SILVER',     tv:'MCX:SILVER1!',      label:'Silver',       exchange:'MCX', price:92100, dec:0 },
+    { name:'GOLD',       tv:'MCX:GOLD1!',        label:'Gold',         exchange:'MCX', price:91500, dec:0 },
+  ],
+  OPT: [
+    { name:'NIFTY 24000CE', tv:'NSE:NIFTY50',   label:'NIFTY CE',    exchange:'NSE OPT', price:120.5, dec:2 },
+    { name:'NIFTY 23500PE', tv:'NSE:NIFTY50',   label:'NIFTY PE',    exchange:'NSE OPT', price:85.25, dec:2 },
+    { name:'BNF 56000CE',   tv:'NSE:BANKNIFTY', label:'BankNifty CE',exchange:'NSE OPT', price:340,   dec:2 },
+    { name:'BNF 55000PE',   tv:'NSE:BANKNIFTY', label:'BankNifty PE',exchange:'NSE OPT', price:210,   dec:2 },
+  ]
+};
+
+let currentSeg   = 'FX';
+let selectedSym  = SYMBOLS.FX[0];
+let liveData     = {};
+let orderCount   = 0;
+
+// Init live prices
+Object.values(SYMBOLS).flat().forEach(s => {
+  liveData[s.name] = { bid: s.price, ask: s.price * 1.0001 };
+});
+
+// ══════════════════════════════════════════════
+//  TRADINGVIEW WIDGET
+// ══════════════════════════════════════════════
+function loadTVWidget(sym) {
+  const container = document.getElementById('tv-chart-container');
+  container.innerHTML = '';   // clear old widget
+
+  const div = document.createElement('div');
+  div.className = 'tradingview-widget-container';
+  div.style.cssText = 'width:100%;height:100%;';
+
+  div.innerHTML = `<div id="tv_widget_inner" style="width:100%;height:100%;"></div>`;
+  container.appendChild(div);
+
+  const script = document.createElement('script');
+  script.src   = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async = true;
+  script.innerHTML = JSON.stringify({
+    autosize:        true,
+    symbol:          sym.tv,
+    interval:        'D',
+    timezone:        'Asia/Kolkata',
+    theme:           'dark',
+    style:           '1',           // 1=Candles
+    locale:          'en',
+    backgroundColor: '#0d1117',
+    gridColor:       'rgba(33,41,58,0.8)',
+    hide_top_toolbar: false,
+    hide_legend:     false,
+    allow_symbol_change: true,
+    save_image:      true,
+    calendar:        false,
+    support_host:    'https://www.tradingview.com',
+    container_id:    'tv_widget_inner',
+    withdateranges:  true,
+    hide_side_toolbar: false,
+    studies: ['MASimple@tv-basicstudies','MACD@tv-basicstudies','RSI@tv-basicstudies'],
+  });
+  div.appendChild(script);
+
+  // Update info bar
+  document.getElementById('tv-sym-label').textContent  = sym.name;
+  document.getElementById('tv-exch-label').textContent = sym.exchange + ' • ' + sym.label;
+  document.getElementById('ord-sym').value             = sym.name;
+
+  // Update order panel market info
+  const d = liveData[sym.name];
+  document.getElementById('mi-bid').textContent    = d.bid.toFixed(sym.dec);
+  document.getElementById('mi-ask').textContent    = d.ask.toFixed(sym.dec);
+  document.getElementById('mi-spread').textContent = (d.ask - d.bid).toFixed(sym.dec);
+  document.getElementById('mi-high').textContent   = (sym.price * 1.005).toFixed(sym.dec);
+  document.getElementById('mi-low').textContent    = (sym.price * 0.995).toFixed(sym.dec);
+}
+
+// ══════════════════════════════════════════════
+//  WATCHLIST
+// ══════════════════════════════════════════════
+function renderWatchlist(seg, filter='') {
+  const items = SYMBOLS[seg].filter(s =>
+    s.name.toLowerCase().includes(filter.toLowerCase())
+  );
+  const body = document.getElementById('watchlist-body');
+  body.innerHTML = items.map(s => {
+    const d   = liveData[s.name];
+    const chg = d.bid - s.price;
+    const pct = (chg / s.price * 100).toFixed(2);
+    const cls = chg >= 0 ? 'pos' : 'neg';
+    const sgn = chg >= 0 ? '+' : '';
+    const sel = selectedSym.name === s.name ? 'selected' : '';
+    return `<div class="watch-item ${sel}" onclick="selectSym('${s.name}','${seg}')">
+      <div class="wh">
+        <span class="wn">${s.name}</span>
+        <span class="wl">LTP: ${d.bid.toFixed(s.dec)}</span>
+      </div>
+      <div class="wp">
+        <span class="wb ${cls}">${d.bid.toFixed(s.dec)}</span>
+        <span class="wc ${cls}">${sgn}${chg.toFixed(s.dec)} (${sgn}${pct}%)</span>
+      </div>
+      <div class="wp" style="margin-top:1px">
+        <span class="wd">${s.exchange}</span>
+        <span class="wl">${s.label}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchSeg(btn, seg) {
+  document.querySelectorAll('.seg-tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentSeg = seg;
+  renderWatchlist(seg);
+}
+
+function filterWatch(val) { renderWatchlist(currentSeg, val); }
+
+function selectSym(name, seg) {
+  selectedSym = SYMBOLS[seg].find(s => s.name === name);
+  renderWatchlist(currentSeg);
+  loadTVWidget(selectedSym);
+  // Make sure chart view is active
+  gotoView('chart', document.querySelector('.topnav a:nth-child(3)'));
+}
+
+// ══════════════════════════════════════════════
+//  LIVE PRICE TICK SIMULATION
+//  (TradingView shows real data; sidebar ticks simulate for UX)
+// ══════════════════════════════════════════════
+setInterval(() => {
+  Object.values(SYMBOLS).flat().forEach(s => {
+    const d   = liveData[s.name];
+    const mov = (Math.random() - 0.495) * s.price * 0.0003;
+    d.bid = Math.max(s.price * 0.85, d.bid + mov);
+    d.ask = d.bid * 1.0001;
+  });
+  renderWatchlist(currentSeg);
+  // refresh order panel bid/ask for selected symbol
+  const d = liveData[selectedSym.name];
+  document.getElementById('mi-bid').textContent    = d.bid.toFixed(selectedSym.dec);
+  document.getElementById('mi-ask').textContent    = d.ask.toFixed(selectedSym.dec);
+  document.getElementById('mi-spread').textContent = (d.ask - d.bid).toFixed(selectedSym.dec);
+}, 1500);
+
+// ══════════════════════════════════════════════
+//  VIEW SWITCHING
+// ══════════════════════════════════════════════
+function gotoView(name, el) {
+  if (event) event.preventDefault();
+  document.querySelectorAll('.topnav a').forEach(a => a.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+}
+
+// ══════════════════════════════════════════════
+//  ORDER FORM
+// ══════════════════════════════════════════════
+function switchSide(side) {
+  document.getElementById('tab-buy').classList.toggle('active', side === 'buy');
+  document.getElementById('tab-sell').classList.toggle('active', side === 'sell');
+  const btn = document.getElementById('exec-btn');
+  if (side === 'buy') {
+    btn.className = 'buy-btn'; btn.textContent = 'BUY MARKET';
+  } else {
+    btn.className = 'sell-btn'; btn.textContent = 'SELL MARKET';
+  }
+}
+
+function togglePriceRow() {
+  const t = document.getElementById('ord-type').value;
+  document.getElementById('price-row').style.display = t === 'Market' ? 'none' : '';
+}
+
+function placeOrder() {
+  const side  = document.getElementById('tab-buy').classList.contains('active') ? 'BUY' : 'SELL';
+  const sym   = document.getElementById('ord-sym').value;
+  const qty   = document.getElementById('ord-qty').value;
+  const d     = liveData[selectedSym.name];
+  const price = d.bid.toFixed(selectedSym.dec);
+  const now   = new Date().toLocaleTimeString();
+
+  orderCount++;
+  const tbody = document.getElementById('order-history');
+  if (orderCount === 1) tbody.innerHTML = '';
+  const cls = side === 'BUY' ? 'tb' : 'ts';
+  tbody.insertAdjacentHTML('afterbegin',
+    `<tr>
+      <td class="tt">${now}</td>
+      <td class="ti">${sym}</td>
+      <td class="${cls}">${side}</td>
+      <td class="tm">${qty}</td>
+      <td class="tm">${price}</td>
+      <td class="tp2">Filled ✓</td>
+    </tr>`);
+
+  showToast(side === 'BUY' ? '#22c55e' : '#ef4444',
+    `${side} ${qty} × ${sym} @ ${price} — Filled`);
+}
+
+function showToast(color, msg) {
+  document.getElementById('t-dot').style.background = color;
+  document.getElementById('t-msg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+// Show logged-in user name initial
+(function() {
+  const sess = JSON.parse(localStorage.getItem('pp_session') || '{}');
+  if (sess.name) {
+    document.getElementById('user-avatar').textContent = sess.name[0].toUpperCase();
+  }
+})();
+
+renderWatchlist('FX');
+loadTVWidget(selectedSym);
+</script>
+</body>
+</html>
