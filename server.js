@@ -1,187 +1,268 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-require("dotenv").config();
+// ═══════════════════════════════════════════════════════════
+//  PROFIT PILOT — Backend Server
+//  Node.js + Express + MongoDB Atlas
+// ═══════════════════════════════════════════════════════════
 
-const app = express();
+const express  = require('express');
+const mongoose = require('mongoose');
+const bcrypt   = require('bcryptjs');
+const jwt      = require('jsonwebtoken');
+const cors     = require('cors');
+const path     = require('path');
+require('dotenv').config();
 
-app.use(cors({
-  origin: function(origin, callback) {
-    callback(null, true);
-  },
-  credentials: true
-}));
+const app  = express();
+const PORT = process.env.PORT || 3000;
 
+// ── MIDDLEWARE ──────────────────────────────────────────────
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname))); // serve HTML files
 
-// ✅ MongoDB Connect
+// ── MONGODB CONNECTION ──────────────────────────────────────
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("✅ MongoDB Connected!"))
-  .catch((err) => console.log("❌ MongoDB Error:", err));
+  .then(() => console.log('✅  MongoDB Atlas connected successfully!'))
+  .catch(err => {
+    console.error('❌  MongoDB connection error:', err.message);
+    process.exit(1);
+  });
 
-// ✅ User Schema
-const UserSchema = new mongoose.Schema({
-  userid: { type: String, required: true, unique: true },
-  username: { type: String, required: true },
-  password: { type: String, required: true },
-  mobileno: { type: String, default: "" },
-  referralCode: { type: String, default: "" },
-  balance: { type: Number, default: 0 },
-  createdAt: { type: Date, default: Date.now }
+// ── USER SCHEMA ─────────────────────────────────────────────
+const userSchema = new mongoose.Schema({
+  userId: {
+    type: String,
+    required: true,
+    unique: true,
+    uppercase: true,
+    trim: true,
+    minlength: 6,
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  password: {
+    type: String,
+    required: true,
+    minlength: 6,
+  },
+  mobile: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  referralCode: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+  role: {
+    type: String,
+    enum: ['user', 'demo', 'admin'],
+    default: 'user',
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
+  lastLogin: {
+    type: Date,
+    default: null,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
-const User = mongoose.model("User", UserSchema);
 
-// ✅ Auth Middleware
-const authMiddleware = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ success: false, message: "Login karo pehle!" });
+const User = mongoose.model('User', userSchema);
+
+// ── SEED DEMO ACCOUNT ───────────────────────────────────────
+async function seedDemoUser() {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.userId = decoded.id;
+    const exists = await User.findOne({ userId: 'DEMO001' });
+    if (!exists) {
+      const hashed = await bcrypt.hash('demo1234', 10);
+      await User.create({
+        userId: 'DEMO001',
+        name: 'Demo User',
+        password: hashed,
+        mobile: '',
+        role: 'demo',
+      });
+      console.log('✅  Demo account created: DEMO001 / demo1234');
+    }
+  } catch (err) {
+    console.error('Demo seed error:', err.message);
+  }
+}
+
+mongoose.connection.once('open', seedDemoUser);
+
+// ── JWT MIDDLEWARE ──────────────────────────────────────────
+function authMiddleware(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ success: false, message: 'No token provided' });
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
   } catch {
-    res.status(401).json({ success: false, message: "Token invalid!" });
+    res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
-};
+}
 
-// ✅ Test Route
-app.get("/", (req, res) => {
-  res.json({ message: "✅ Profit Pilot Backend is Running!" });
+// ══════════════════════════════════════════════════════════════
+//  API ROUTES
+// ══════════════════════════════════════════════════════════════
+
+// ── REGISTER ────────────────────────────────────────────────
+app.post('/api/register', async (req, res) => {
+  try {
+    const { userId, name, password, mobile, referralCode } = req.body;
+
+    // Validation
+    if (!userId || userId.trim().length < 6)
+      return res.status(400).json({ success: false, message: 'User ID must be at least 6 characters.' });
+    if (!name || !name.trim())
+      return res.status(400).json({ success: false, message: 'Full name is required.' });
+    if (!password || password.length < 6)
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters.' });
+    if (mobile && !/^\d{10}$/.test(mobile.trim()))
+      return res.status(400).json({ success: false, message: 'Enter a valid 10-digit mobile number.' });
+
+    // Check duplicate
+    const exists = await User.findOne({ userId: userId.toUpperCase() });
+    if (exists)
+      return res.status(409).json({ success: false, message: 'This User ID already exists. Choose another.' });
+
+    // Hash password
+    const hashed = await bcrypt.hash(password, 10);
+
+    // Save to MongoDB
+    const newUser = await User.create({
+      userId: userId.toUpperCase(),
+      name: name.trim(),
+      password: hashed,
+      mobile: mobile?.trim() || '',
+      referralCode: referralCode?.trim() || '',
+    });
+
+    console.log(`📝  New user registered: ${newUser.userId} (${newUser.name})`);
+
+    res.status(201).json({
+      success: true,
+      message: `Account created successfully! Your User ID: ${newUser.userId}`,
+      userId: newUser.userId,
+    });
+
+  } catch (err) {
+    console.error('Register error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error. Please try again.' });
+  }
 });
 
-// ✅ REGISTER
-app.post("/api/v1/selfRegister", async (req, res) => {
+// ── LOGIN ────────────────────────────────────────────────────
+app.post('/api/login', async (req, res) => {
   try {
-    console.log("Register body:", req.body);
-    const body = req.body || {};
-    const userid = body.userid;
-    const username = body.username;
-    const password = body.password;
-    const mobileno = body.mobileno || "";
-    const referralCode = body.referralCode || "";
+    const { userId, password } = req.body;
 
-    if (!userid || !password || !username) {
-      return res.status(400).json({ success: false, message: "Saari fields bharo!" });
-    }
+    if (!userId || !password)
+      return res.status(400).json({ success: false, message: 'User ID and Password are required.' });
 
-    const existing = await User.findOne({ userid });
-    if (existing) {
-      return res.status(400).json({ success: false, message: "Ye User ID already exist karta hai!" });
-    }
+    // Find user
+    const user = await User.findOne({ userId: userId.toUpperCase() });
+    if (!user)
+      return res.status(401).json({ success: false, message: 'Invalid User ID or Password.' });
 
-    const hashed = await bcrypt.hash(password, 12);
-    const user = new User({ userid, username, password: hashed, mobileno, referralCode, balance: 0 });
+    if (!user.isActive)
+      return res.status(403).json({ success: false, message: 'Your account is deactivated. Contact support.' });
+
+    // Check password
+    const match = await bcrypt.compare(password, user.password);
+    if (!match)
+      return res.status(401).json({ success: false, message: 'Invalid User ID or Password.' });
+
+    // Update last login
+    user.lastLogin = new Date();
     await user.save();
 
-    const token = jwt.sign({ id: user._id, userid: user.userid }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.status(201).json({ success: true, message: "Account successfully bana gaya!", token: token, jwtToken: token, userId: user.userid, userid: user.userid, username: user.username });
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user.userId, name: user.name, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    console.log(`🔑  Login: ${user.userId} at ${new Date().toLocaleTimeString()}`);
+
+    res.json({
+      success: true,
+      message: 'Login successful!',
+      token,
+      user: {
+        userId: user.userId,
+        name: user.name,
+        mobile: user.mobile,
+        role: user.role,
+        lastLogin: user.lastLogin,
+      },
+    });
+
   } catch (err) {
-    console.error("Register Error:", err);
-    res.status(500).json({ success: false, message: "Server error: " + err.message });
+    console.error('Login error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error. Please try again.' });
   }
 });
 
-// ✅ LOGIN
-app.post("/api/v1/login", async (req, res) => {
+// ── GET ALL USERS (admin view) ───────────────────────────────
+app.get('/api/users', authMiddleware, async (req, res) => {
   try {
-    console.log("Login body:", req.body);
-    const body = req.body || {};
-    const userid = body.userid;
-    const password = body.password;
+    if (req.user.role !== 'admin')
+      return res.status(403).json({ success: false, message: 'Admin access only.' });
 
-    if (!userid || !password) {
-      return res.status(400).json({ success: false, message: "User ID aur password bharo!" });
-    }
-
-    const user = await User.findOne({ userid });
-    if (!user) return res.status(400).json({ success: false, message: "User ID galat hai!" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ success: false, message: "Password galat hai!" });
-
-    const token = jwt.sign({ id: user._id, userid: user.userid }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.json({ success: true, message: "Login successful!", token: token, jwtToken: token, userId: user.userid, userid: user.userid, username: user.username, balance: user.balance });
+    const users = await User.find({}, '-password').sort({ createdAt: -1 });
+    res.json({ success: true, count: users.length, users });
   } catch (err) {
-    console.error("Login Error:", err);
-    res.status(500).json({ success: false, message: "Server error: " + err.message });
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
 
-// ✅ DEMO LOGIN
-app.post("/api/v1/demoLogin", async (req, res) => {
-  const token = jwt.sign({ id: "demo123", userid: "demo" }, process.env.JWT_SECRET, { expiresIn: "1d" });
-  res.json({ success: true, message: "Demo login successful!", jwtToken: token, userId: "demo", username: "Demo User", balance: 10000 });
-});
-
-// ✅ GET USER INFO
-app.get("/api/v1/user", authMiddleware, async (req, res) => {
+// ── GET PROFILE ──────────────────────────────────────────────
+app.get('/api/profile', authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select("-password");
-    if (!user) return res.status(404).json({ success: false, message: "User nahi mila!" });
-    res.json({ success: true, ...user.toObject() });
-  } catch {
-    res.status(500).json({ success: false, message: "Server error!" });
-  }
-});
-
-// ✅ BROKER INFO
-app.get("/api/v1/broker", authMiddleware, (req, res) => {
-  res.json({ success: true, brokerName: "Profit Pilot", logo: "./profit-pilot-logo.png" });
-});
-app.get("/api/v1/broker/che", authMiddleware, (req, res) => {
-  res.json({ success: true });
-});
-
-// ✅ LOGOUT
-app.post("/api/v1/logout", authMiddleware, (req, res) => {
-  res.json({ success: true, message: "Logout successful!" });
-});
-
-// ✅ VALIDATE TOKEN
-app.get("/api/v1/validate", authMiddleware, (req, res) => {
-  res.json({ success: true, message: "Token valid hai!" });
-});
-
-// ✅ GET AUTH
-app.get("/api/v1/getAuth", authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select("-password");
+    const user = await User.findOne({ userId: req.user.userId }, '-password');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
     res.json({ success: true, user });
-  } catch {
-    res.status(500).json({ success: false });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error.' });
   }
 });
 
-// ✅ OTHER ROUTES
-app.all("/api/v1/watchlist", authMiddleware, (req, res) => res.json({ success: true, watchlist: [] }));
-app.all("/api/v1/onlywatchlist", authMiddleware, (req, res) => res.json({ success: true, watchlist: [] }));
-app.all("/api/v1/tradeposition", authMiddleware, (req, res) => res.json({ success: true, positions: [] }));
-app.all("/api/v1/chart", authMiddleware, (req, res) => res.json({ success: true, data: [] }));
-app.all("/api/v1/execution", authMiddleware, (req, res) => res.json({ success: true, data: [] }));
-app.all("/api/v1/ledger", authMiddleware, (req, res) => res.json({ success: true, data: [] }));
-app.all("/api/v1/get", authMiddleware, (req, res) => res.json({ success: true, data: [] }));
-app.all("/api/v1/Get", authMiddleware, (req, res) => res.json({ success: true, data: [] }));
-app.all("/api/v1/chat", authMiddleware, (req, res) => res.json({ success: true, data: [] }));
-app.all("/api/v1/addsltgt", authMiddleware, (req, res) => res.json({ success: true }));
-app.all("/api/v1/limitmodify", authMiddleware, (req, res) => res.json({ success: true }));
-app.all("/api/v1/marginsetting", authMiddleware, (req, res) => res.json({ success: true, data: {} }));
-app.all("/api/v1/forgot", (req, res) => res.json({ success: true, message: "OTP sent!" }));
-app.all("/api/v1/requestOTP", (req, res) => res.json({ success: true, message: "OTP sent!" }));
-app.all("/api/v1/change", authMiddleware, (req, res) => res.json({ success: true }));
-app.all("/api/v1/SubNotification", authMiddleware, (req, res) => res.json({ success: true }));
-app.all("/api/v1/GetBkgExposure", authMiddleware, (req, res) => res.json({ success: true, data: {} }));
-app.all("/api/v1/getLedgerReq", authMiddleware, (req, res) => res.json({ success: true, data: [] }));
-app.all("/api/v1/getWithdrawalLimitInfo", authMiddleware, (req, res) => res.json({ success: true, data: {} }));
-app.all("/api/v1/mytpipay", authMiddleware, (req, res) => res.json({ success: true, data: {} }));
-
-// ✅ Catch all unknown routes
-app.all("*", (req, res) => {
-  console.log("Unknown route:", req.method, req.path);
-  res.json({ success: true, data: [] });
+// ── VERIFY TOKEN ─────────────────────────────────────────────
+app.get('/api/verify', authMiddleware, (req, res) => {
+  res.json({ success: true, user: req.user });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+// ── HEALTH CHECK ─────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    status: 'running',
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    time: new Date().toISOString(),
+  });
+});
+
+// ── SERVE FRONTEND FILES ─────────────────────────────────────
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+
+// ── START SERVER ─────────────────────────────────────────────
+app.listen(PORT, () => {
+  console.log('');
+  console.log('🚀  Profit Pilot Server running!');
+  console.log(`🌐  Open: http://localhost:${PORT}`);
+  console.log(`📊  Dashboard: http://localhost:${PORT}/dashboard`);
+  console.log('');
+});
