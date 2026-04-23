@@ -1,2 +1,13 @@
-node_modules/
-.env
+V
+Copy
+
+# ── MongoDB Atlas Connection String ──
+# Replace with your actual MongoDB Atlas URI
+MONGO_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/profitpilot?retryWrites=true&w=majority
+ 
+# ── JWT Secret Key (change this to any random string) ──
+JWT_SECRET=profit_pilot_super_secret_key_2024
+ 
+# ── Server Port ──
+PORT=3000
+ 
