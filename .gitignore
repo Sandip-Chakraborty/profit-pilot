@@ -1,13 +1,14 @@
-V
-Copy
-
-# ── MongoDB Atlas Connection String ──
-# Replace with your actual MongoDB Atlas URI
-MONGO_URI=mongodb+srv://YOUR_USERNAME:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/profitpilot?retryWrites=true&w=majority
+# Dependencies
+node_modules/
  
-# ── JWT Secret Key (change this to any random string) ──
-JWT_SECRET=profit_pilot_super_secret_key_2024
+# Environment variables (NEVER upload to GitHub!)
+.env
  
-# ── Server Port ──
-PORT=3000
+# Logs
+*.log
+npm-debug.log*
+ 
+# OS files
+.DS_Store
+Thumbs.db
  
