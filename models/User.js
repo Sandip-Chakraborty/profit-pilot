@@ -4,10 +4,9 @@ const UserSchema = new mongoose.Schema({
   userId: {
     type: String,
     required: true,
-    unique: true,
-    minlength: 6
+    unique: true
   },
-  accountName: {
+  username: {
     type: String,
     required: true
   },
@@ -35,3 +34,4 @@ const UserSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model("User", UserSchema);
+
